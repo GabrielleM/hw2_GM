@@ -6,8 +6,76 @@ class MoviesController < ApplicationController
     # will render app/views/movies/show.<extension> by default
   end
 
+
+  # Mar 14, hw2
   def index
-    @movies = Movie.all
+    @all_ratings = Movie.all_ratings  
+    #all_ratings is a class variable of the Movie model
+   
+#was unable to identify the correct condition to clear the session   
+=begin
+   if @session_id == nil
+      @session_id = session[:session_id]
+      session.delete(:ratings)
+      session.delete(:sort)
+      @selected_ratings = (params[:ratings].present? ? params[:ratings] : @all_ratings)
+    end
+=end
+    
+    #saves ratings params in session[:ratings], so that they persist upon 
+    #leaving the index page
+    if params[:ratings] != nil 
+      session[:ratings] = params[:ratings]
+      @selected_ratings = session[:ratings]
+    end  
+
+    # sets @selected_ratings to all_ratings, when no ratings have been selected 
+    if params[:ratings] == nil 
+      if session[:ratings] == nil 
+         @selected_ratings = (params[:ratings].present? ? params[:ratings] : @all_ratings)
+      end
+      if session[:ratings] != nil
+        @selected_ratings = session[:ratings]
+      end
+    end
+    
+    #saves sort params in session[:sort], so that they persist upon leaving the 
+    #index page
+    if params[:sort] != nil
+      session[:sort] = params[:sort]
+      @sort = session[:sort]
+    end
+
+    if params[:sort] == nil
+      if session[:sort] != nil
+        @sort = session[:sort]
+      end
+    end
+
+    #redirects to URI containing appropriate params, if previously chosen 
+    #params are only persisting in session[] 
+    if params[:ratings] != session[:ratings]
+      session[:ratings] = @selected_ratings
+      session[:sort] = @sort  
+      redirect_to :sort => @sort, :ratings => @selected_ratings  and return
+    end
+
+    if session[:sort] != nil
+      if params[:sort] != session[:sort]
+        session[:sort] = @sort
+        redirect_to :sort => @sort, :ratings => @selected_ratings  and return
+      end
+    end
+
+    #specifies how movies should be displayed, including which ratings 
+    if session[:sort] == nil    
+        @movies = Movie.find(:all,  :conditions => {:rating => @selected_ratings})  
+
+    #specifies how movies should be displayed, including which ratings and 
+    #sorting according to release_date or title   
+    elsif session[:sort] != nil
+      @movies = Movie.find(:all, :conditions => {:rating => @selected_ratings}, :order => @sort)
+    end
   end
 
   def new
